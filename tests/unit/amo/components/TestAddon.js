@@ -109,6 +109,7 @@ function renderProps({
 function render(...args) {
   const { store, i18n, ...props } = renderProps(...args);
   props.i18n = i18n;
+
   return findRenderedComponentWithType(
     renderIntoDocument(
       <Provider store={store}>
@@ -614,14 +615,11 @@ describe(__filename, () => {
     expect(byline.attributes.class).toBeTruthy();
   });
 
-  it('configures the install button', () => {
-    const root = shallowRender().find(InstallButton);
-    expect(root.prop('slug')).toEqual(fakeAddon.slug);
-  });
+  it('passes the addon to the InstallButton', () => {
+    const addon = createInternalAddon(fakeAddon);
+    const root = shallowRender({ addon });
 
-  it('always uses a button and not a switch for the InstallButton', () => {
-    const root = shallowRender().find(InstallButton);
-    expect(root.prop('useButton')).toEqual(true);
+    expect(root.find(InstallButton)).toHaveProp('addon', addon);
   });
 
   it('sets a title for the description of an extension', () => {
@@ -998,7 +996,7 @@ describe(__filename, () => {
     expect(root.find('.Addon-theme')).toHaveLength(1);
   });
 
-  it('disables install button for incompatibility with firefox version', () => {
+  it('disables the install button for incompatibility with firefox version', () => {
     const root = shallowRender({
       getClientCompatibility: () => ({
         reason: INCOMPATIBLE_UNDER_MIN_VERSION,
@@ -1020,6 +1018,26 @@ describe(__filename, () => {
     );
   });
 
+  it('passes install helper functions to the install button', () => {
+    const enable = sinon.stub();
+    const install = sinon.stub();
+    const installTheme = sinon.stub();
+    const uninstall = sinon.stub();
+
+    const root = shallowRender({
+      enable,
+      install,
+      installTheme,
+      uninstall,
+    });
+
+    const installButton = root.find(InstallButton);
+    expect(installButton).toHaveProp('enable', enable);
+    expect(installButton).toHaveProp('install', install);
+    expect(installButton).toHaveProp('installTheme', installTheme);
+    expect(installButton).toHaveProp('uninstall', uninstall);
+  });
+
   it('hides banner on non firefox clients and displays firefox download button', () => {
     const root = shallowRender({
       getClientCompatibility: getClientCompatibilityFalse,
@@ -1028,7 +1046,7 @@ describe(__filename, () => {
     expect(root.find(Button)).toHaveLength(1);
   });
 
-  it('passes installStatus to installButton, not add-on status', () => {
+  it('passes installStatus to InstallButton, not add-on status', () => {
     const root = shallowRender({
       addon: createInternalAddon(fakeAddon),
       installStatus: UNKNOWN,

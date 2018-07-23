@@ -67,11 +67,15 @@ export class AddonBase extends React.Component {
     // This prop is passed in by withInstallHelpers()
     defaultInstallSource: PropTypes.string.isRequired,
     dispatch: PropTypes.func.isRequired,
+    enable: PropTypes.func.isRequired,
     errorHandler: PropTypes.object.isRequired,
     getClientCompatibility: PropTypes.func,
     i18n: PropTypes.object.isRequired,
-    platformFiles: PropTypes.object,
+    install: PropTypes.func.isRequired,
+    installTheme: PropTypes.func.isRequired,
     lang: PropTypes.string.isRequired,
+    platformFiles: PropTypes.object,
+    uninstall: PropTypes.func.isRequired,
     // See ReactRouterLocation in 'core/types/router'
     location: PropTypes.object.isRequired,
     params: PropTypes.object.isRequired,
@@ -378,10 +382,15 @@ export class AddonBase extends React.Component {
       clientApp,
       config,
       defaultInstallSource,
+      enable,
       errorHandler,
       getClientCompatibility,
       i18n,
+      install,
       installStatus,
+      installTheme,
+      location,
+      uninstall,
       userAgentInfo,
     } = this.props;
 
@@ -520,14 +529,19 @@ export class AddonBase extends React.Component {
                 {addon &&
                   isFireFox && (
                     <InstallButton
-                      {...this.props}
-                      disabled={!isCompatible}
-                      ref={(ref) => {
-                        this.installButton = ref;
-                      }}
+                      addon={addon}
                       defaultInstallSource={defaultInstallSource}
+                      disabled={!isCompatible}
+                      enable={enable}
+                      install={install}
+                      installTheme={installTheme}
+                      // We should not have to pass `location` here, but tests
+                      // are failing otherwise. This should become useless
+                      // after:
+                      // https://github.com/mozilla/addons-frontend/pull/5652.
+                      location={location}
                       status={installStatus}
-                      useButton
+                      uninstall={uninstall}
                     />
                   )}
                 {addon &&

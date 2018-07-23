@@ -28,7 +28,7 @@ import {
   createFakeEvent,
   createFakeTracking,
   fakeI18n,
-  signedInApiState,
+  sampleUserAgentParsed,
 } from 'tests/unit/helpers';
 import {
   dispatchClientMetadata,
@@ -42,11 +42,16 @@ import LoadingText from 'ui/components/LoadingText';
 
 function renderAddon(customProps = {}) {
   const props = {
-    setCurrentStatus: sinon.stub(),
+    clientApp: CLIENT_APP_FIREFOX,
+    enable: sinon.stub(),
     getBrowserThemeData: () => '{"theme":"data"}',
     getClientCompatibility: () => ({ compatible: true, reason: null }),
-    hasAddonManager: true,
     i18n: fakeI18n(),
+    installTheme: sinon.stub(),
+    setCurrentStatus: sinon.stub(),
+    status: UNINSTALLED,
+    uninstall: sinon.stub(),
+    userAgentInfo: sampleUserAgentParsed,
     ...customProps,
   };
   return shallow(<AddonBase {...props} />);
@@ -84,6 +89,27 @@ describe(__filename, () => {
 
     expect(root.find(LoadingText)).toHaveLength(1);
     expect(root.instance().props.platformFiles).toEqual({});
+  });
+
+  it('passes install helper functions to the install button', () => {
+    const enable = sinon.stub();
+    const install = sinon.stub();
+    const installTheme = sinon.stub();
+    const uninstall = sinon.stub();
+
+    const root = renderAddon({
+      addon: { ...result },
+      enable,
+      install,
+      installTheme,
+      uninstall,
+    });
+
+    const installButton = root.find(InstallButton);
+    expect(installButton).toHaveProp('enable', enable);
+    expect(installButton).toHaveProp('install', install);
+    expect(installButton).toHaveProp('installTheme', installTheme);
+    expect(installButton).toHaveProp('uninstall', uninstall);
   });
 
   describe('<Addon type="extension"/>', () => {
@@ -346,18 +372,22 @@ describe(__filename, () => {
 
     it('passes a defaultInstallSource to the install button', () => {
       const defaultInstallSource = 'fake-discopane-source';
-      const data = {
+      const addon = {
         ...result,
         type: ADDON_TYPE_EXTENSION,
       };
       const root = renderAddon({
-        addon: data,
-        ...data,
+        addon,
+        ...addon,
         defaultInstallSource,
       });
 
       const button = root.find(InstallButton);
+      expect(button).toHaveLength(1);
+      expect(button).toHaveProp('addon', result.addon);
+      expect(button).toHaveProp('className', 'Addon-install-button');
       expect(button).toHaveProp('defaultInstallSource', defaultInstallSource);
+      expect(button).toHaveProp('disabled', false);
     });
 
     it('disables incompatible add-ons', () => {
@@ -406,11 +436,9 @@ describe(__filename, () => {
       const addon = result;
       const shallowRoot = renderAddon({
         addon,
-        clientApp: signedInApiState.clientApp,
         installTheme,
         status: UNINSTALLED,
         type: ADDON_TYPE_THEME,
-        userAgentInfo: signedInApiState.userAgentInfo,
       });
       const themeImage = shallowRoot.find('.theme-image');
 
